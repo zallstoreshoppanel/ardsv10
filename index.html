@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>ARDS V10 — ARDS V10</title>
+<link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+<style>
+/* ====== STYLES (kept visual same as requested) ====== */
+*{margin:0;padding:0;box-sizing:border-box;font-family:'Poppins',sans-serif;}
+html,body{width:100%;height:100%;background:#000;color:#fff;overflow:hidden}
+canvas#particles{position:fixed;inset:0;z-index:-1}
+
+/* Login */
+#login-page{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.85);transition:opacity .6s;}
+#login-box{background:rgba(20,20,20,0.9);padding:30px 40px;border-radius:20px;box-shadow:0 0 25px rgba(255,0,0,0.3);text-align:center;width:320px}
+#login-box h2{margin-bottom:15px;font-size:22px;color:red}
+#login-box input{width:100%;padding:10px;margin:8px 0;border:none;border-radius:10px;background:#111;color:#fff}
+#login-box button{width:100%;padding:10px;border:none;border-radius:10px;background:red;color:#fff;font-weight:bold;cursor:pointer;transition:.3s}
+#login-box button:hover{background:#ff3030}
+#msg{color:#ff9b9b;margin-top:10px;font-size:14px}
+
+/* Main / Header / Sidebar */
+#main-page{display:none;min-height:100vh;position:relative}
+header{display:flex;align-items:center;justify-content:space-between;padding:14px 20px;background:rgba(10,10,10,0.9);position:fixed;left:0;right:0;top:0;z-index:40}
+.brand{display:flex;gap:12px;align-items:center}
+.brand .logo{width:44px;height:44px;border-radius:10px;background:linear-gradient(135deg,#ff2a2a,#7c3aed);display:flex;align-items:center;justify-content:center}
+.brand .title{font-weight:800}
+.hamb{width:46px;height:46px;border-radius:10px;background:rgba(255,255,255,0.03);display:flex;align-items:center;justify-content:center;cursor:pointer}
+
+/* sidebar */
+#sidebar{position:fixed;top:0;left:-360px;width:360px;height:100vh;background:rgba(15,15,15,0.98);padding-top:70px;transition:left .32s;z-index:60;box-shadow:20px 0 60px rgba(0,0,0,0.6);overflow:auto}
+#sidebar.active{left:0}
+#sidebar .menu-list{padding:8px 12px}
+#sidebar .menu-item{display:flex;align-items:center;gap:12px;padding:12px;border-radius:8px;color:#fff;cursor:pointer;margin:6px 0}
+#sidebar .menu-item:hover{background:rgba(255,255,255,0.02)}
+#sidebar .tool-panel{padding:12px;border-top:1px solid rgba(255,255,255,0.02);margin-top:6px}
+
+/* overlay for outside click */
+#overlay{position:fixed;inset:0;background:rgba(0,0,0,0.45);z-index:50;display:none}
+
+/* main content */
+main{padding:100px 20px 40px 20px;min-height:100vh;overflow:auto}
+.main-card{max-width:980px;margin:0 auto;padding:18px;border-radius:12px;background:linear-gradient(180deg,rgba(255,255,255,0.02),rgba(255,255,255,0.01));box-shadow:0 20px 60px rgba(0,0,0,0.6);text-align:center}
+.main-card h1{font-size:28px;color:#fff;text-shadow:0 0 15px rgba(255,0,0,0.12)}
+
+/* inputs inside sidebar tool panels - keep consistent */
+.sidebar-input{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:#0b0b0b;color:#fff;margin-top:8px}
+.sidebar-select{width:100%;padding:10px;border-radius:8px;border:1px solid rgba(255,255,255,0.03);background:#0b0b0b;color:#fff;margin-top:8px}
+.sidebar-btn{width:100%;padding:10px;border-radius:10px;border:none;background:linear-gradient(90deg,#ff3b3b,#ff1a1a);color:#041025;font-weight:800;margin-top:12px;cursor:pointer}
+
+/* modal */
+.modal-back{position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(0,0,0,0.65);z-index:80;opacity:0;pointer-events:none;transition:opacity .12s}
+.modal-back.show{opacity:1;pointer-events:auto}
+.modal{width:92%;max-width:420px;padding:18px;border-radius:12px;background:linear-gradient(180deg,#071019,#041017);color:#e6eef6;box-shadow:0 24px 60px rgba(0,0,0,0.6)}
+.progress-wrap{height:14px;background:rgba(255,255,255,0.03);border-radius:10px;margin-top:10px;overflow:hidden}
+.progress{height:100%;width:0%;background:linear-gradient(90deg,#ff7a7a,#ff3b3b);transition:width .18s linear}
+.status{color:#9aa4ad;margin-top:8px}
+.result{margin-top:12px;color:#c7d2d8;background:rgba(255,255,255,0.02);padding:10px;border-radius:8px;display:none}
+
+/* responsive */
+@media (max-width:760px){
+  #sidebar{width:320px}
+}
+</style>
+</head>
+<body>
+<canvas id="particles"></canvas>
+
+<!-- LOGIN -->
+<section id="login-page">
+  <div id="login-box">
+    <h2><i class="ri-shield-user-line"></i> LOGIN ARDS V10</h2>
+    <input id="email" type="email" placeholder="Email">
+    <input id="password" type="password" placeholder="Password">
+    <button id="login-btn"><i class="ri-login-box-line"></i> Masuk</button>
+    <p id="msg"></p>
+  </div>
+</section>
+
+<!-- APP -->
+<section id="main-page">
+  <header>
+    <div class="brand">
+      <div class="logo" aria-hidden>
+        <svg width="22" height="22" viewBox="0 0 24 24" fill="none"><rect x="3" y="3" width="18" height="18" rx="3" fill="white" opacity="0.06"/><path d="M7 12h10M12 7v10" stroke="white" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>
+      </div>
+      <div class="title">ARDS V10</div>
+    </div>
+    <div class="hamb" id="hamb"><i class="ri-menu-line" style="font-size:20px"></i></div>
+  </header>
+
+  <!-- SIDEBAR with menu and dynamic tool panel (tools live here) -->
+  <aside id="sidebar" aria-hidden="true">
+    <div class="menu-list" id="menuList">
+      <div class="menu-item" data-page="home"><i class="ri-home-3-line"></i><div>Home</div></div>
+      <div class="menu-item" data-page="bug"><i class="ri-bug-line"></i><div>Bug Tools</div></div>
+      <div class="menu-item" data-page="lokasi"><i class="ri-map-pin-line"></i><div>Lacak Lokasi</div></div>
+      <div class="menu-item" data-page="ip"><i class="ri-router-line"></i><div>Lacak IP</div></div>
+      <div class="menu-item" data-page="ddos"><i class="ri-flashlight-line"></i><div>DDOS Server</div></div>
+      <div class="menu-item" data-page="dev"><i class="ri-user-line"></i><div>Developer</div></div>
+      <div style="height:8px"></div>
+      <div class="menu-item" id="logoutBtn" style="color:#ffb3b3"><i class="ri-logout-box-line"></i><div>Logout</div></div>
+    </div>
+
+    <!-- dynamic panel area (TOOLS LIVE HERE) -->
+    <div id="sidebarContent" class="tool-panel">
+      <!-- default message -->
+      <div id="toolDefault" style="color:#9aa4ad;font-size:14px">Pilih menu di atas untuk membuka tool. Semua tool dijalankan di sini .</div>
+    </div>
+  </aside>
+
+  <div id="overlay"></div>
+
+  <!-- Main content (kept clean, no image per request) -->
+  <main>
+    <div class="main-card">
+      <h1>Selamat Datang di ARDS V10</h1>
+      <p style="color:#9aa4ad">Gunakan menu (☰) untuk membuka tools. Semua aksi adalah .</p>
+    </div>
+  </main>
+</section>
+
+<!-- Shared modal -->
+<div class="modal-back" id="modalBack" aria-hidden="true">
+  <div class="modal" role="dialog" aria-modal="true">
+    <h3 id="modalTitle" style="color:#ff2a2a;margin:0">Processing</h3>
+    <div class="progress-wrap"><div id="modalProgress" class="progress"></div></div>
+    <div class="status" id="modalStatus">Memulai...</div>
+    <div id="modalResult" class="result" style="display:none"></div>
+  </div>
+</div>
+
+<!-- audio (music link provided earlier) -->
+<audio id="bgMusic" src="https://files.catbox.moe/2xccf7.mp3" preload="auto"></audio>
+
+<script type="module">
+// Firebase (unchanged) - keep user's config
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-app.js";
+import { getAuth, signInWithEmailAndPassword, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.2.1/firebase-auth.js";
+
+const firebaseConfig = {
+  apiKey: "AIzaSyArE6B5jQCSECpOusTxrOYmUsjeFEa17YI",
+  authDomain: "bugwa-1fc47.firebaseapp.com",
+  projectId: "bugwa-1fc47",
+  storageBucket: "bugwa-1fc47.firebasestorage.app",
+  messagingSenderId: "309575475227",
+  appId: "1:309575475227:web:c2a7a9123afb30023698be"
+};
+const app = initializeApp(firebaseConfig);
+const auth = getAuth(app);
+
+// ensure logout on load so session not persisted
+signOut(auth).catch(()=>{});
+
+// ======== particles (unchanged) ========
+const canvas = document.getElementById('particles');
+const ctx = canvas.getContext('2d');
+let W = canvas.width = innerWidth, H = canvas.height = innerHeight;
+window.addEventListener('resize', ()=>{ W = canvas.width = innerWidth; H = canvas.height = innerHeight; });
+const particles = [];
+for(let i=0;i<100;i++) particles.push({ x:Math.random()*W, y:Math.random()*H, r:Math.random()*2, vx:(Math.random()-.5)*0.5, vy:(Math.random()-.5)*0.5, a:0.3+Math.random()*0.6 });
+(function render(){ ctx.clearRect(0,0,W,H); ctx.fillStyle='rgba(255,40,40,0.8)'; for(const p of particles){ ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fill(); p.x+=p.vx; p.y+=p.vy; if(p.x<-10)p.x=W+10; if(p.x>W+10)p.x=-10; if(p.y<-10)p.y=H+10; if(p.y>H+10)p.y=-10;} requestAnimationFrame(render); })();
+
+// ======== UI refs ========
+const loginPage = document.getElementById('login-page');
+const loginBox = document.getElementById('login-box');
+const loginMsg = document.getElementById('msg');
+const mainPage = document.getElementById('main-page');
+const hamb = document.getElementById('hamb');
+const sidebar = document.getElementById('sidebar');
+const overlay = document.getElementById('overlay');
+const sidebarContent = document.getElementById('sidebarContent');
+const modalBack = document.getElementById('modalBack');
+const modalProgress = document.getElementById('modalProgress');
+const modalStatus = document.getElementById('modalStatus');
+const modalResult = document.getElementById('modalResult');
+const bgMusic = document.getElementById('bgMusic');
+
+// ======== Sidebar open/close behavior ========
+function openSidebar(){ sidebar.classList.add('active'); overlay.style.display='block'; sidebar.setAttribute('aria-hidden','false'); }
+function closeSidebar(){ sidebar.classList.remove('active'); overlay.style.display='none'; sidebar.setAttribute('aria-hidden','true'); }
+hamb.addEventListener('click', ()=> { sidebar.classList.contains('active')? closeSidebar() : openSidebar(); });
+overlay.addEventListener('click', ()=> closeSidebar());
+
+// ======== Modal helpers & progress simulation ========
+function openModal(title){ document.getElementById('modalTitle').textContent = title || 'Processing'; modalBack.classList.add('show'); modalProgress.style.width = '0%'; modalProgress.style.background = 'linear-gradient(90deg,#ff7a7a,#ff3b3b)'; modalStatus.textContent = 'Memulai...'; modalResult.style.display = 'none'; }
+function closeModal(){ modalBack.classList.remove('show'); modalProgress.style.width = '0%'; modalProgress.style.background = ''; modalResult.style.display = 'none'; }
+function setModalResult(html){ modalResult.style.display = 'block'; modalResult.innerHTML = html; }
+function runProgress(duration, onDone){
+  openModal('Processing');
+  const start = Date.now();
+  const iv = setInterval(()=>{
+    const pct = Math.min(100, ((Date.now()-start)/duration)*100);
+    modalProgress.style.width = pct + '%';
+    modalStatus.textContent = 'Proses: ' + Math.round(pct) + '%';
+    if(pct >= 100){ clearInterval(iv); modalStatus.textContent = 'Selesai'; if(onDone) onDone(); }
+  }, 160);
+}
+
+// ======== AUTH: Login (Firebase) ========
+document.getElementById('login-btn').addEventListener('click', async ()=>{
+  const email = document.getElementById('email').value.trim();
+  const pwd = document.getElementById('password').value;
+  if(!email || !pwd){ loginMsg.textContent = 'Isi semua kolom!'; return; }
+  loginMsg.textContent = 'Memproses...';
+  try{
+    // Show short modal while authenticating (user feedback)
+    openModal('Signing in...');
+    modalStatus.textContent = 'Menghubungkan ke Firebase...';
+    const p = signInWithEmailAndPassword(auth, email, pwd);
+    // small visual spin (not blocking)
+    const start = Date.now();
+    const iv = setInterval(()=> {
+      const pct = Math.min(100, ((Date.now()-start)/5000)*100);
+      modalProgress.style.width = pct + '%';
+      modalStatus.textContent = 'Mengautentikasi... ' + Math.round(pct) + '%';
+    }, 160);
+    await p;
+    clearInterval(iv);
+    modalProgress.style.width = '100%';
+    modalProgress.style.background = '#10b981';
+    setModalResult('<div>Login berhasil. Mengarahkan ke aplikasi...</div>');
+    setTimeout(()=>{
+      closeModal();
+      loginPage.style.display = 'none';
+      mainPage.style.display = 'block';
+      // try to play music (may be blocked by browser; catch silently)
+      bgMusic.volume = 0.65;
+      bgMusic.play().catch(()=>{});
+    }, 700);
+  } catch(err){
+    closeModal();
+    loginMsg.textContent = 'Login gagal — periksa kredensial';
+    console.warn(err);
+  }
+});
+
+// Ensure if already signed in (rare) we still force logout on reload
+onAuthStateChanged(auth, user=>{
+  if(user){
+    // we purposely sign out immediately on load to avoid persistent login
+    // but if sign-in just happened, do nothing (we handled above)
+  }
+});
+
+// ======== Sidebar menu wiring & TOOL PANELS (tools live inside sidebar) ========
+const menuItems = document.querySelectorAll('#sidebar .menu-item');
+menuItems.forEach(item=>{
+  item.addEventListener('click', ()=>{
+    const page = item.dataset.page;
+    if(page === 'home'){ // show default message in sidebar content
+      sidebarContent.innerHTML = `<div style="color:#9aa4ad">Home — gunakan menu untuk membuka tool.</div>`;
+      return;
+    }
+    if(page === 'dev'){
+      sidebarContent.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px">Developer</div>
+        <div style="color:#9aa4ad;margin-bottom:8px">@ARDSDEV — ARDS V10</div>
+        <div style="font-size:13px;color:#9aa4ad">Versi demo. Semua tool bersifat  UI.</div>
+      `;
+      return;
+    }
+    if(page === 'logout'){
+      signOut(auth).then(()=> location.reload()).catch(()=> location.reload());
+      return;
+    }
+
+    // inject appropriate tool UI into sidebarContent
+    if(page === 'bug'){
+      sidebarContent.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px">Bug Tools</div>
+        <label style="font-size:13px;color:#9aa4ad">Nomor (wajib)</label>
+        <input id="sbBugNumber" class="sidebar-input" placeholder="081234567890" inputmode="tel">
+        <label style="font-size:13px;color:#9aa4ad;margin-top:8px">Pilih Bug</label>
+        <select id="sbBugSelect" class="sidebar-select">
+          <option value="bug1">BUG 1 — Delay Visible</option>
+          <option value="bug2">BUG 2 — Simulate Ping</option>
+          <option value="bug3">BUG 3 — Header Flood </option>
+          <option value="bug4">BUG 4 — Input Crash </option>
+          <option value="bug5">BUG 5 — Analyze Header</option>
+        </select>
+        <button id="sbBugStart" class="sidebar-btn">Mulai</button>
+        <div id="sbBugResult" class="result" style="display:none"></div>
+      `;
+      // wire button
+      setTimeout(()=> {
+        document.getElementById('sbBugStart').addEventListener('click', ()=>{
+          const num = document.getElementById('sbBugNumber').value.trim();
+          const sel = document.getElementById('sbBugSelect').value;
+          const resBox = document.getElementById('sbBugResult');
+          resBox.style.display = 'none';
+          const d = String(num||'').replace(/\D/g,'');
+          if(d.length < 6 || d.length > 15){ openModal('Peringatan'); modalStatus.textContent='Nomor tidak valid'; modalProgress.style.width='100%'; setTimeout(closeModal,2000); return; }
+          runProgress(15000, ()=>{
+            setModalResult(`<strong>Hasil </strong><br>Nomor: ${escapeHtml(num)}<br>Metode: ${escapeHtml(sel)}<div style="color:#9aa4ad;margin-top:8px"> UI — tidak ada aksi nyata.</div>`);
+            modalProgress.style.background = '#10b981';
+            setTimeout(()=>{ closeModal(); resBox.style.display='block'; resBox.innerHTML = `<strong>Hasil :</strong> ${escapeHtml(sel)} pada ${escapeHtml(num)} .`; }, 3000);
+          });
+        });
+      }, 50);
+      return;
+    }
+
+    if(page === 'lokasi'){
+      sidebarContent.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px">Lacak Lokasi </div>
+        <label style="font-size:13px;color:#9aa4ad">Nomor / ID</label>
+        <input id="sbLocInput" class="sidebar-input" placeholder="081234567890">
+        <button id="sbLocStart" class="sidebar-btn">Mulai</button>
+        <div id="sbLocResult" class="result" style="display:none"></div>
+      `;
+      setTimeout(()=> {
+        document.getElementById('sbLocStart').addEventListener('click', ()=>{
+          const id = document.getElementById('sbLocInput').value.trim();
+          const box = document.getElementById('sbLocResult'); box.style.display='none';
+          if(!id){ openModal('Peringatan'); modalStatus.textContent='Masukkan ID/nomor'; modalProgress.style.width='100%'; setTimeout(closeModal,2000); return; }
+          runProgress(12000, ()=> {
+            setModalResult(`<strong>Lokasi </strong><br>Negara: Indonesia<br>Kota: Jakarta <br>Koordinat: -6.2000,106.8167`);
+            modalProgress.style.background = '#10b981';
+            setTimeout(()=>{ closeModal(); box.style.display='block'; box.innerHTML = `<strong>Lokasi :</strong> Jakarta  untuk ${escapeHtml(id)}`; }, 3000);
+          });
+        });
+      },50);
+      return;
+    }
+
+    if(page === 'ip'){
+      sidebarContent.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px">Lacak IP </div>
+        <label style="font-size:13px;color:#9aa4ad">IP / Domain</label>
+        <input id="sbIpInput" class="sidebar-input" placeholder="203.0.113.45">
+        <button id="sbIpStart" class="sidebar-btn">Mulai</button>
+        <div id="sbIpResult" class="result" style="display:none"></div>
+      `;
+      setTimeout(()=> {
+        document.getElementById('sbIpStart').addEventListener('click', ()=>{
+          const ip = document.getElementById('sbIpInput').value.trim();
+          const box = document.getElementById('sbIpResult'); box.style.display='none';
+          if(!ip){ openModal('Peringatan'); modalStatus.textContent='Masukkan IP/domain'; modalProgress.style.width='100%'; setTimeout(closeModal,2000); return; }
+          runProgress(10000, ()=> {
+            setModalResult(`<strong>IP Info </strong><br>IP: ${escapeHtml(ip)}<br>ISP: Contoh ISP<br>Perkiraan Lokasi: Jakarta`);
+            modalProgress.style.background = '#10b981';
+            setTimeout(()=>{ closeModal(); box.style.display='block'; box.innerHTML = `<strong>IP :</strong> ${escapeHtml(ip)} — ISP: Contoh ISP `; }, 3000);
+          });
+        });
+      },50);
+      return;
+    }
+
+    if(page === 'ddos'){
+      sidebarContent.innerHTML = `
+        <div style="font-weight:700;margin-bottom:8px">DDOS Server (Disabled)</div>
+        <p style="color:#9aa4ad;font-size:13px">Fitur DDoS dinonaktifkan di demo. Menjalankan DDoS nyata adalah ilegal.</p>
+        <label style="font-size:13px;color:#9aa4ad">Target</label>
+        <input id="sbDdosTarget" class="sidebar-input" placeholder="example.com">
+        <button id="sbDdosInfo" class="sidebar-btn">Info</button>
+        <div id="sbDdosResult" class="result" style="display:none"></div>
+      `;
+      setTimeout(()=> {
+        document.getElementById('sbDdosInfo').addEventListener('click', ()=>{
+          const tgt = document.getElementById('sbDdosTarget').value.trim() || '(kosong)';
+          runProgress(7000, ()=> {
+            setModalResult(`<strong>Peringatan Legal</strong><br>Menjalankan DDoS pada server nyata adalah ilegal. Target: ${escapeHtml(tgt)}<div style="color:#9aa4ad;margin-top:8px">Fitur dinonaktifkan di demo ini.</div>`);
+            modalProgress.style.background = '#f59e0b';
+            setTimeout(()=>{ closeModal(); document.getElementById('sbDdosResult').style.display='block'; document.getElementById('sbDdosResult').innerHTML = 'Informasi DDoS (disabled)'; }, 3000);
+          });
+        });
+      },50);
+      return;
+    }
+  });
+});
+
+// Logout button top-level
+document.getElementById('logoutBtn').addEventListener('click', ()=> {
+  signOut(auth).then(()=> location.reload()).catch(()=> location.reload());
+});
+
+// When clicking outside the sidebar, close (overlay already wired)
+overlay.addEventListener('click', ()=> closeSidebar());
+
+// ======== utility ========
+function escapeHtml(s){ return String(s||'').replace(/[&<>"']/g, m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":"&#39;"}[m])); }
+
+// initial state: show login
+loginPage.style.display = 'flex';
+mainPage.style.display = 'none';
+
+// optional: if user is already logged in (unlikely due to signOut on load), show app
+onAuthStateChanged(auth, user=>{
+  if(user){
+    loginPage.style.display='none';
+    mainPage.style.display='block';
+    // try to play music
+    bgMusic.volume = 0.65;
+    bgMusic.play().catch(()=>{});
+  }
+});
+</script>
+</body>
+</html>
